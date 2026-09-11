@@ -1,0 +1,591 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Good Graces formatter</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600&family=Instrument+Serif&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --stone:#e4e2dd;
+    --ink:#1b1a18;
+    --muted:#6e6a63;
+    --line:rgba(27,26,24,.11);
+    --field:rgba(27,26,24,.065);
+    --glass:rgba(255,255,255,.58);
+    --glass-edge:rgba(255,255,255,.78);
+    --empty:#cfccc5;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;min-height:100%}
+  body{
+    font-family:'Archivo',system-ui,sans-serif;font-size:14px;line-height:1.45;
+    color:var(--ink);background:var(--stone);-webkit-font-smoothing:antialiased;
+  }
+  button{font:inherit;color:inherit}
+  :focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+
+  .backdrop{
+    position:fixed;inset:-15%;z-index:0;pointer-events:none;
+    background:center/cover no-repeat;filter:blur(90px) saturate(1.4);
+    opacity:0;transition:opacity .9s ease;
+  }
+  .backdrop.on{opacity:.55}
+
+  .app{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column;padding:20px 28px 24px;width:100%;max-width:calc((100dvh - 110px) * .8 + 424px);margin:0 auto}
+  .top{display:flex;align-items:center;gap:12px;margin-bottom:18px}
+  .top svg{height:22px;width:auto;display:block}
+  h1{font-family:'Instrument Serif',Georgia,serif;font-weight:400;font-size:29px;line-height:1;margin:0;letter-spacing:-.005em}
+
+  .layout{flex:1;display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:28px;align-items:start}
+
+  /* stage */
+  .stage-wrap{display:flex;flex-direction:column;align-items:center;min-width:0}
+  .stage{
+    position:relative;width:min(100%, calc((100dvh - 110px) * .8));aspect-ratio:4/5;
+    border-radius:4px;overflow:hidden;background:var(--empty);outline-offset:4px;
+    box-shadow:0 34px 70px -34px rgba(0,0,0,.42),0 2px 6px rgba(0,0,0,.06);
+  }
+  .stage canvas{display:block;width:100%;height:100%;touch-action:none}
+  .stage.has-img canvas{cursor:grab}
+  .stage.panning canvas{cursor:grabbing}
+  .empty{
+    position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:6px;padding:24px;text-align:center;
+  }
+  .stage.has-img .empty{display:none}
+  .empty-title{font-family:'Instrument Serif',Georgia,serif;font-size:clamp(30px,4.2vw,46px);line-height:1.05;margin:0}
+  .empty-sub{margin:0 0 12px;color:var(--muted)}
+  .dropping{
+    position:absolute;inset:12px;display:none;align-items:center;justify-content:center;
+    border:1.5px dashed rgba(27,26,24,.55);border-radius:3px;background:rgba(255,255,255,.4);
+    font-weight:500;pointer-events:none;
+  }
+  .stage.drag .dropping{display:flex}
+  .stage.drag .empty{visibility:hidden}
+  .hint{margin:12px 0 0;min-height:1.45em;font-size:13px;color:var(--muted);text-align:center}
+
+  /* panel */
+  .panel{
+    background:var(--glass);border:1px solid var(--glass-edge);border-radius:20px;
+    -webkit-backdrop-filter:blur(26px) saturate(1.5);backdrop-filter:blur(26px) saturate(1.5);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.9),0 24px 50px -30px rgba(0,0,0,.28);
+    padding:4px 20px 20px;max-height:calc(100dvh - 82px);overflow:auto;
+  }
+  .group{padding:13px 0;border-bottom:1px solid var(--line)}
+  .group h2{font-size:13px;font-weight:600;margin:0 0 10px}
+  .row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+
+  .btn{border:0;border-radius:999px;padding:10px 18px;background:var(--ink);color:#fff;font-weight:500;cursor:pointer}
+  .btn:disabled{opacity:.32;cursor:not-allowed}
+  .btn-block{width:100%;padding:13px 18px;font-size:15px}
+  .btn-soft{border:0;border-radius:999px;padding:6px 12px;background:var(--field);font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap}
+  .btn-soft:hover{background:rgba(27,26,24,.1)}
+
+  .file-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500}
+  .status{margin:10px 0 0;font-size:13px;color:#8a2a1c}
+  .status:empty{display:none}
+  .photo-loaded{display:none}
+  .has-photo .photo-loaded{display:block}
+  .has-photo .photo-empty{display:none}
+
+  /* logo choice */
+  .logo-opts{display:grid;grid-template-columns:1fr 1.55fr;gap:8px}
+  .logo-opt{
+    border:1px solid var(--line);background:rgba(255,255,255,.4);border-radius:12px;
+    padding:13px 10px 9px;display:flex;flex-direction:column;align-items:center;justify-content:space-between;gap:9px;cursor:pointer;
+  }
+  .logo-opt .glyph{height:30px;display:flex;align-items:center}
+  .logo-opt .glyph svg{display:block;height:28px;width:auto}
+  .logo-opt.wm .glyph svg{height:auto;width:100%;max-width:150px}
+  .logo-opt .glyph{width:100%;justify-content:center}
+  .logo-opt span{font-size:12.5px;color:var(--muted)}
+  .logo-opt:hover{background:rgba(255,255,255,.7)}
+  .logo-opt[aria-checked="true"]{background:#fff;border-color:var(--ink);box-shadow:0 0 0 .5px var(--ink)}
+  .logo-opt[aria-checked="true"] span{color:var(--ink)}
+
+  /* position */
+  .pos-wrap{display:flex;align-items:center;gap:18px}
+  .mini{
+    position:relative;flex:none;width:100px;aspect-ratio:4/5;border-radius:3px;overflow:hidden;
+    background:var(--empty) center/cover no-repeat;box-shadow:0 8px 18px -10px rgba(0,0,0,.35);
+  }
+  .mini-logo{position:absolute;pointer-events:none;filter:drop-shadow(0 0 .6px rgba(0,0,0,.45))}
+  .mini-logo svg{display:block;width:100%;height:100%}
+  .spot{position:absolute;width:36px;height:34px;border:0;padding:8px;background:transparent;cursor:pointer;display:flex}
+  .spot i{width:9px;height:9px;border-radius:50%;border:1.5px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.28)}
+  .spot:hover i{background:rgba(255,255,255,.75)}
+  .spot[aria-checked="true"] i{visibility:hidden}
+  .spot:focus-visible{outline-offset:-2px;border-radius:6px}
+  .spot[data-pos^="t"]{top:0;align-items:flex-start}
+  .spot[data-pos^="b"]{bottom:0;align-items:flex-end}
+  .spot[data-pos$="l"]{left:0;justify-content:flex-start}
+  .spot[data-pos$="r"]{right:0;justify-content:flex-end}
+  .spot[data-pos$="c"]{left:50%;transform:translateX(-50%);justify-content:center}
+  .pos-name{font-family:'Instrument Serif',Georgia,serif;font-size:24px;line-height:1.1;margin:0 0 4px}
+  .pos-help{margin:0;font-size:13px;color:var(--muted)}
+
+  /* color */
+  .seg-group{display:grid;grid-template-columns:repeat(3,1fr);gap:3px;padding:3px;border-radius:999px;background:var(--field)}
+  .seg{
+    position:relative;border:0;background:transparent;border-radius:999px;padding:7px 6px;font-size:13px;
+    display:flex;align-items:center;justify-content:center;gap:7px;cursor:pointer;
+  }
+  .seg[aria-checked="true"]{background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+  .seg:focus-within{outline:2px solid transparent}
+  .seg:has(input:focus-visible){outline:2px solid var(--ink);outline-offset:2px}
+  .dot{width:12px;height:12px;border-radius:50%;flex:none;box-shadow:inset 0 0 0 1px rgba(0,0,0,.22)}
+  .seg input[type="color"]{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;border:0;padding:0}
+
+  /* sliders */
+  .slider + .slider{margin-top:8px}
+  .slider .row{font-size:13px}
+  .val-input{
+    font:inherit;font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums;
+    background:var(--field);border:1px solid var(--line);border-radius:6px;
+    padding:2px 6px;width:72px;text-align:right;
+  }
+  .val-input:hover{background:rgba(27,26,24,.1)}
+  .val-input:focus{background:#fff;color:var(--ink);border-color:var(--ink);outline:none}
+  .val-input::-webkit-inner-spin-button, .val-input::-webkit-outer-spin-button {-webkit-appearance:none;margin:0}
+  .val-input{-moz-appearance:textfield}
+
+  input[type="range"]{
+    --p:50%;-webkit-appearance:none;appearance:none;width:100%;height:24px;margin:2px 0 0;background:transparent;cursor:pointer;
+  }
+  input[type="range"]::-webkit-slider-runnable-track{height:3px;border-radius:3px;background:linear-gradient(to right,var(--ink) var(--p),rgba(27,26,24,.16) var(--p))}
+  input[type="range"]::-moz-range-track{height:3px;border-radius:3px;background:linear-gradient(to right,var(--ink) var(--p),rgba(27,26,24,.16) var(--p))}
+  input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;margin-top:-6.5px;border-radius:50%;background:#fff;border:1px solid rgba(27,26,24,.25);box-shadow:0 1px 4px rgba(0,0,0,.2)}
+  input[type="range"]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:#fff;border:1px solid rgba(27,26,24,.25);box-shadow:0 1px 4px rgba(0,0,0,.2)}
+  input[type="range"]:disabled{opacity:.4;cursor:not-allowed}
+  .zoom-row{display:flex;align-items:flex-end;gap:10px;margin-top:8px}
+  .zoom-row .slider{flex:1}
+
+  .preset-pills{display:flex;gap:4px;margin-top:6px}
+  .preset-pill{
+    border:0;border-radius:999px;padding:3px 10px;background:var(--field);font-size:11.5px;font-weight:500;cursor:pointer;color:var(--muted);
+  }
+  .preset-pill:hover{background:rgba(27,26,24,.1);color:var(--ink)}
+  .preset-pill[aria-pressed="true"]{background:var(--ink);color:#fff}
+
+  .export{padding-top:14px}
+  .export p{margin:10px 0 0;text-align:center;font-size:12.5px;color:var(--muted)}
+
+  @media (max-width:880px){
+    .app{padding:16px 16px 24px;max-width:none}
+    .layout{grid-template-columns:1fr;gap:18px}
+    .stage{width:100%}
+    .panel{max-height:none}
+  }
+  @media (prefers-reduced-motion:reduce){
+    .backdrop{transition:none}
+  }
+</style>
+</head>
+<body>
+<div class="backdrop" id="backdrop"></div>
+
+<div class="app">
+  <header class="top">
+    <span id="brandMark" aria-hidden="true"></span>
+    <h1>Good Graces formatter</h1>
+  </header>
+
+  <main class="layout">
+    <section class="stage-wrap">
+      <div class="stage" id="stage" tabindex="0" aria-label="Post preview. Use arrow keys to move the photo.">
+        <canvas id="canvas" width="1080" height="1350"></canvas>
+        <div class="empty">
+          <p class="empty-title">Start with a photo</p>
+          <p class="empty-sub">Drop it here, paste it, or</p>
+          <button class="btn" type="button" data-pick>Choose photo</button>
+        </div>
+        <div class="dropping">Drop to use this photo</div>
+      </div>
+      <p class="hint" id="hint"></p>
+    </section>
+
+    <aside class="panel" id="panel">
+      <div class="group">
+        <h2>Photo</h2>
+        <div class="photo-empty">
+          <button class="btn-soft" type="button" data-pick>Choose photo</button>
+        </div>
+        <div class="photo-loaded">
+          <div class="row">
+            <span class="file-name" id="fileName"></span>
+            <button class="btn-soft" type="button" data-pick>Replace</button>
+          </div>
+          <div class="zoom-row">
+            <div class="slider">
+              <div class="row"><label for="zoom">Zoom</label><output id="zoomOut" for="zoom"></output></div>
+              <input type="range" id="zoom" min="100" max="400" step="1" value="100">
+            </div>
+            <button class="btn-soft" type="button" id="resetCrop" style="margin-bottom:3px">Reset</button>
+          </div>
+        </div>
+        <p class="status" id="status" role="status"></p>
+      </div>
+
+      <div class="group">
+        <h2 id="logoLabel">Logo</h2>
+        <div class="logo-opts" role="radiogroup" aria-labelledby="logoLabel">
+          <button class="logo-opt" type="button" role="radio" data-logo="monogram"><div class="glyph"></div><span>Monogram</span></button>
+          <button class="logo-opt wm" type="button" role="radio" data-logo="wordmark"><div class="glyph"></div><span>Wordmark</span></button>
+        </div>
+      </div>
+
+      <div class="group">
+        <h2 id="posLabel">Position</h2>
+        <div class="pos-wrap">
+          <div class="mini" id="mini" role="radiogroup" aria-labelledby="posLabel">
+            <div class="mini-logo" id="miniLogo"></div>
+            <button class="spot" type="button" role="radio" data-pos="tl" aria-label="Top left"><i></i></button>
+            <button class="spot" type="button" role="radio" data-pos="tc" aria-label="Center top"><i></i></button>
+            <button class="spot" type="button" role="radio" data-pos="tr" aria-label="Top right"><i></i></button>
+            <button class="spot" type="button" role="radio" data-pos="bl" aria-label="Bottom left"><i></i></button>
+            <button class="spot" type="button" role="radio" data-pos="bc" aria-label="Center bottom"><i></i></button>
+            <button class="spot" type="button" role="radio" data-pos="br" aria-label="Bottom right"><i></i></button>
+          </div>
+          <div>
+            <p class="pos-name" id="posName"></p>
+            <p class="pos-help">Tap a dot to move the logo.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="group">
+        <h2 id="colorLabel">Logo color</h2>
+        <div class="seg-group" role="radiogroup" aria-labelledby="colorLabel">
+          <button class="seg" type="button" role="radio" data-mode="white"><span class="dot" style="background:#fff"></span>White</button>
+          <button class="seg" type="button" role="radio" data-mode="black"><span class="dot" style="background:#000"></span>Black</button>
+          <label class="seg" role="radio" data-mode="custom"><span class="dot" id="customDot"></span>Custom<input type="color" id="colorInput" value="#c8a15a" aria-label="Custom logo color"></label>
+        </div>
+        <div style="margin-top:12px">
+          <div class="slider">
+            <div class="row">
+              <label for="size">Size</label>
+              <div style="display:flex;align-items:center;gap:4px">
+                <input type="number" id="sizeVal" class="val-input" step="1">
+                <span style="font-size:13px;color:var(--muted)">px</span>
+              </div>
+            </div>
+            <input type="range" id="size" step="1">
+            <div class="preset-pills" id="sizePresets"></div>
+          </div>
+          <div class="slider" style="margin-top:12px">
+            <div class="row">
+              <label for="margin">Margin</label>
+              <div style="display:flex;align-items:center;gap:4px">
+                <input type="number" id="marginVal" class="val-input" min="0" max="240" step="1">
+                <span style="font-size:13px;color:var(--muted)">px</span>
+              </div>
+            </div>
+            <input type="range" id="margin" min="0" max="240" step="1">
+          </div>
+        </div>
+      </div>
+
+      <div class="export">
+        <button class="btn btn-block" type="button" id="download" disabled>Download PNG</button>
+        <p>Exports at 1080 × 1350 px for a 4:5 post.</p>
+      </div>
+    </aside>
+  </main>
+</div>
+
+<input type="file" id="file" accept="image/*" hidden>
+
+<script>
+const W = 1080, H = 1350;
+const LOGOS = {
+  "monogram": {
+    "name": "Monogram", "vb": [209, 353, 523, 319],
+    "paths": ["M427.1,556c.2-20.1-19.4-23.2-41-23l.3-8.9h112.4c0,0,6.5-.5,6.5-.5,1.8-.1,2.1,5.8,1.5,7.5-1.2,3.9-29.5-.3-29.6,26.9v81.5c-.1,0-36.5,15.5-36.5,15.5-87.9,37.5-193.6,9.6-222.7-86-12.5-41-10.3-85.3,6.7-124.9,41-95.9,160.9-110.8,246.9-61.8l.9,78.2-4.2.5c-3,.4-6.3-35.1-34.7-64.8-36.8-38.3-96.3-36.3-130.2,5.4-22.3,27.4-32.6,62.2-34.2,98.2-2.1,46.5,6.4,97.7,38.2,131.6,26.6,28.4,68.8,35.7,102,14.9,6.1-3.8,17-12.2,17.1-19.6l.6-70.7h0Z", "M513.9,469c-.2,20.1,19.4,23.2,41,23l-.3,8.9h-112.4c0,0-6.5.5-6.5.5-1.8.1-2.1-5.8-1.5-7.5,1.2-3.9,29.5.3,29.6-26.9v-81.5c.1,0,36.5-15.5,36.5-15.5,87.9-37.5,193.6-9.6,222.7,86,12.5,41,10.3,85.3-6.7,124.9-41,95.9-160.9,110.8-246.9,61.8l-.9-78.2,4.2-.5c3-.4,6.3,35.1,34.7,64.8,36.8,38.3,96.3,36.3,130.2-5.4,22.3-27.4,32.6-62.2,34.2-98.2,2.1-46.5-6.4-97.7-38.2-131.6-26.6-28.4-68.8-35.7-102-14.9-6.1,3.8-17,12.2-17.1,19.6l-.6,70.7h0Z"],
+    "min": 60, "max": 600, "size": 170, "presets": [120, 170, 240, 360]
+  },
+  "wordmark": {
+    "name": "Wordmark", "vb": [-1, -1, 2175, 317],
+    "paths": ["M208.65,203.93c.2-19.3-18.6-22.2-39.4-22.1l.3-8.5h107.9l6.2-.5c1.7-.1,2,5.6,1.5,7.2-1.1,3.7-28.4-.3-28.4,25.8v78.2c-.1,0-35,14.9-35,14.9-84.3,36-185.8,9.2-213.7-82.6C-3.95,176.93-1.85,134.53,14.45,96.43,53.85,4.43,168.85-9.87,251.35,37.13l.9,75.1-4,.5c-2.9.3-6.1-33.7-33.3-62.2-35.3-36.8-92.4-34.8-125,5.2-21.4,26.3-31.2,59.7-32.8,94.2-2,44.6,6.2,93.8,36.6,126.3,25.5,27.3,66.1,34.2,97.9,14.3,5.9-3.7,16.3-11.7,16.4-18.8l.6-67.9h0v.1Z", "M812.05,313.43c-53.1,5.9-86.7-37.9-88-92.4-1.3-52,24.5-105.2,77.7-114.1,23.5-3.9,45.4,2.4,64.5,18.2V48.93c0-12.7-9-19.7-21.2-19.8l-6.3-1.1c-1.4-.2-.7-5.3,0-6.6L911.95.53v269.3c0,5.2,1.7,11,4.4,14,8,8.4,21.1.8,20.5,9.2-.1,1.8-3.1,3-6,3.8l-64.6,17.9-.5-37.6c-14,21-32.2,33.9-53.8,36.3h.1ZM844.05,285.23c14.3-9,22.3-25.9,22.2-42l-.4-81.2c0-9.5-6.8-20.4-12.2-27.5-14.5-19.1-40.4-20.5-57.6-4.2-32.5,30.8-32.8,117.1-.5,148,13,12.4,32.3,17,48.5,6.9h0Z", "M691.95,265.43c-18.5,33.2-52.2,50.4-89.3,48.7-33.5-1.5-63.7-17.7-79.8-47.1-15.7-28.7-17-61.4-7.4-92.3,14.9-47.7,60.5-75.6,109.7-67.8,35.8,5.7,63.8,29,75.4,63.8,10.3,31.2,7.9,65.1-8.7,94.7h.1ZM655.75,184.83c-3.3-32.2-18.5-68.9-50.3-67.2-36.5,2-46.7,49.9-46.9,86.4s9.8,95.5,45.3,98.5c53.7,4.5,56.9-69.5,51.9-117.8h0v.1Z", "M483.35,256.33c-18,40.2-56.4,61.1-98.9,57.5-32-2.7-60.4-18.7-76.1-47.1-14.9-26.8-16.6-57.2-9-86.4,12.5-47.7,54.7-77.7,103.8-74.4,39.6,2.6,72.6,26.3,84.3,64.9,8.4,27.8,8.2,58.3-4,85.6h0l-.1.1ZM441.35,247.43c6.5-45.5.9-128.8-46-129.8-53.2-1.2-58.8,88.5-44,141.2,7.7,27.4,23,47.2,50.4,43.5,23.9-3.2,36.1-30.1,39.6-54.9h0Z", "M1222.25,206.63c.2-13.9-9.2-22.3-21.9-23.4l-18.6-1.5.3-8.3,109-.2c1.3-.3,5.6-1.5,5.9-.2l1.4,7.1c.7,3.5-28.8-1.1-28.9,26l-.2,78.6-34.8,14.9c-74.6,31.8-169.9,13.6-204.8-65.8-21.8-49.5-18.5-107.1,8.8-154,45.9-78.8,150.4-85.3,226.3-42.6l1,74.1-4,1.7c-1.3.5-3-3-3.3-4.5-5.1-22.7-15.6-42-31.2-58.3-25.8-27-63.5-33.4-96.7-15.3-74.8,40.9-77.9,186.7-20.1,243.5,24.7,24.2,61.4,30.7,91.7,13.8,7.2-4,18.3-12.3,19.4-20.6l.8-65.1h0l-.1.1Z", "M1459.85,273.43c-1.9-16.5,3.8-33.4,16-44.1,11.1-9.6,24.2-16.7,38.2-21.1l56.2-17.4-1.4-39.2c-.3-9.9-6.2-20.7-14-26.2-13.4-9.4-31.2-8.8-44.6-.8-5.9,3.5-7.1,9.5-3.4,15,7.1,10.6,8,25.4-.8,35.1-7.1,7.9-18.2,8.8-26.8,4.9s-13.3-14.1-11.9-25c5.2-39.6,64.7-59.2,109.9-43.4,20.7,7.2,36.5,25,36.7,47.8l1.2,120.4c0,5.2,4.2,11.2,7.7,12.4,5.5,1.8,11.6-1.2,15.2-5l3.2-3.3c.8-.9,3.6,2.3,4.1,3.4-7.9,17.1-24.9,27.5-43.5,26.4-18.9-.9-30.1-15.3-31.6-34.2l-18.9,18.7c-13.5,13.4-33.3,17.9-52.2,15.3-21-2.9-36.7-17.7-39.2-39.9h0l-.1.2ZM1536.15,288.63c15.8-2.2,28.1-12.5,33.8-26.2v-61.6l-45,18c-15.7,8.7-24.7,24.4-22.8,41.9,1.9,17.4,15.3,29.7,34.1,27.8l-.1.1Z", "M2005.15,247.63c.7-1.5,6.3,1.1,5.8,2.5-16.1,43.9-49.4,68.7-97,63-30.4-3.7-54.8-21.6-67-50.4-17.3-40.9-11.8-90.1,16-124.8,18-22.5,43.6-33.2,71.8-32.1,50.8,1.9,76.4,43.7,74.4,93.1h-126.7c-.2,22,4.8,42.9,17.5,60.3,13.2,18.2,34.3,26,56.5,23.7,20.2-2.1,40-15.5,48.7-35.3h0ZM1963.05,186.53c3.1-30.2-6.5-65.2-33.2-68.2-30.4-3.5-48.7,37.4-47.1,68.9l80.3-.7Z", "M1723.85,128.83c-28,25.9-31.8,84.1-13.6,120,12.2,24,35.5,37.5,62,33.1,19.9-2,35.9-13.8,44.3-31.9l2.6-3.3c.5-.7,2.7.5,5.3,1.6-5.6,16.8-13.9,33.2-28.4,45.5-34.1,28.9-86.4,26.2-117-6.6-32.8-35.1-32.8-97.2-7.9-137.1,27.6-44.2,85.6-58,129.4-30.4,13.2,8.3,21.3,22,19.9,37-1.3,14.2-12.2,23.1-26.1,22.1-8.2-.6-15.4-4-18.8-12.1-7.6-18,9.2-33.6-6.8-43.8-14.4-9.1-32.1-5.9-44.8,5.8h0l-.1.1Z", "M2136.65,305.43c-20.2,9-41.6,10.4-63,6.8l-42.6-10.7-.9-60.4,3.6-2.9c.9-.7,3.2,2.9,3.5,4.2,8.1,35.8,36.4,68.9,73.8,58.5,11.5-3.2,19.4-12.6,21.4-22.2,4.9-23.9-12.8-34.5-33.1-44.6l-42.8-21.4c-15.4-7.7-24-23.8-25.6-40.6-2.5-26.9,11.7-50.7,36.7-60.3,32-12.3,61.7-4.1,93.4,5.6v54.1l-3.9.9c-4.1,1-3.8-23.2-25.9-43.3-14.4-13.1-35.5-16.6-52-5.7-8.4,5.6-11.6,14.3-11.3,23.8,1.7,45.1,106,34.6,104.2,104.1-.6,23.7-13.3,44-35.7,53.9h0l.2.2Z", "M1372.95,282.63c0,5.2,4.1,13.9,7.9,14.6l20.7,3.7v7.8h-100.1c-.3-2.5-1-7.2,0-7.4l6.7-1.2c4.6-.8,11.4-2.3,14.2-5.1,3.3-3.3,5.1-9.6,5.1-14.9v-128.6c0-12.2-8.8-19.7-20.9-18.7-1.3.1-5,.2-5.1-.9l-.3-6.6,71.2-20.6.6,48.6,16.9-26.9c10.1-16.1,41.1-29.8,57.3-13,10.8,11.2,10.2,36.5-5.2,44.2-7.9,4-19.3,3.1-25.4-4.6l-6.7-13.9c-2.6-5.4-12.8-3.5-17.1.8-11.1,11.2-19.8,26.9-19.9,43.8l-.2,98.7h0l.3.2Z"],
+    "min": 160, "max": 1000, "size": 420, "presets": [280, 330, 420, 600, 800]
+  }
+};
+const POS = {
+  tl:{label:'Top left', x:0, y:0},   tc:{label:'Center top', x:.5, y:0},   tr:{label:'Top right', x:1, y:0},
+  bl:{label:'Bottom left', x:0, y:1}, bc:{label:'Center bottom', x:.5, y:1}, br:{label:'Bottom right', x:1, y:1}
+};
+
+const state = {
+  img:null, url:null, name:'',
+  zoom:1, ox:0, oy:0,
+  logo:'monogram', pos:'br',
+  mode:'white', custom:'#c8a15a',
+  sizes:{monogram:LOGOS.monogram.size, wordmark:LOGOS.wordmark.size},
+  margin:64
+};
+
+const $ = id => document.getElementById(id);
+const canvas = $('canvas'), ctx = canvas.getContext('2d');
+const stage = $('stage'), panel = $('panel');
+
+for (const L of Object.values(LOGOS)) L.p2d = L.paths.map(d => new Path2D(d));
+
+function svgMarkup(key, color){
+  const L = LOGOS[key], [x,y,w,h] = L.vb;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${x} ${y} ${w} ${h}" aria-hidden="true"><g fill="${color}" stroke="${color}" stroke-width=".8" stroke-miterlimit="10">${L.paths.map(d=>`<path d="${d}"/>`).join('')}</g></svg>`;
+}
+const logoColor = () => state.mode === 'white' ? '#ffffff' : state.mode === 'black' ? '#000000' : state.custom;
+const clamp = (v,a,b) => Math.min(b, Math.max(a, v));
+
+function coverSize(){
+  const {img} = state;
+  const s = Math.max(W / img.naturalWidth, H / img.naturalHeight) * state.zoom;
+  return {dw: img.naturalWidth * s, dh: img.naturalHeight * s};
+}
+function clampPan(){
+  if (!state.img) return;
+  const {dw, dh} = coverSize();
+  const mx = (dw - W) / 2, my = (dh - H) / 2;
+  state.ox = clamp(state.ox, -mx, mx);
+  state.oy = clamp(state.oy, -my, my);
+}
+function logoRect(){
+  const L = LOGOS[state.logo], p = POS[state.pos], m = state.margin;
+  const w = state.sizes[state.logo], h = w * L.vb[3] / L.vb[2];
+  const x = p.x === 0 ? m : p.x === 1 ? W - m - w : (W - w) / 2;
+  const y = p.y === 0 ? m : H - m - h;
+  return {x, y, w, h};
+}
+
+function render(){
+  ctx.clearRect(0, 0, W, H);
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  if (state.img){
+    clampPan();
+    const {dw, dh} = coverSize();
+    ctx.drawImage(state.img, (W - dw) / 2 + state.ox, (H - dh) / 2 + state.oy, dw, dh);
+  } else {
+    ctx.fillStyle = '#cfccc5';
+    ctx.fillRect(0, 0, W, H);
+  }
+  const L = LOGOS[state.logo], r = logoRect(), c = logoColor();
+  ctx.save();
+  ctx.translate(r.x, r.y);
+  ctx.scale(r.w / L.vb[2], r.h / L.vb[3]);
+  ctx.translate(-L.vb[0], -L.vb[1]);
+  ctx.fillStyle = c; ctx.strokeStyle = c; ctx.lineWidth = .8; ctx.miterLimit = 10;
+  for (const p of L.p2d){ ctx.fill(p); ctx.stroke(p); }
+  ctx.restore();
+  renderMini();
+}
+let raf = 0;
+const schedule = () => { if (!raf) raf = requestAnimationFrame(() => { raf = 0; render(); }); };
+
+let miniKey = '';
+function renderMini(){
+  const mini = $('mini'), ml = $('miniLogo');
+  const key = state.logo + logoColor();
+  if (key !== miniKey){ ml.innerHTML = svgMarkup(state.logo, logoColor()); miniKey = key; }
+  const s = mini.clientWidth / W, r = logoRect();
+  Object.assign(ml.style, {left:r.x*s+'px', top:r.y*s+'px', width:r.w*s+'px', height:r.h*s+'px'});
+  if (state.img){
+    const {dw, dh} = coverSize();
+    mini.style.backgroundSize = `${dw*s}px ${dh*s}px`;
+    mini.style.backgroundPosition = `${((W-dw)/2 + state.ox)*s}px ${((H-dh)/2 + state.oy)*s}px`;
+  }
+}
+
+function setRange(input, value, min, max){
+  if (min !== undefined){ input.min = min; input.max = max; }
+  input.value = value;
+  const p = (input.value - input.min) / (input.max - input.min) * 100;
+  input.style.setProperty('--p', p + '%');
+}
+
+function syncUI(){
+  const has = !!state.img;
+  stage.classList.toggle('has-img', has);
+  panel.classList.toggle('has-photo', has);
+  $('download').disabled = !has;
+  $('fileName').textContent = state.name;
+  $('hint').textContent = has ? 'Drag the photo to reposition it.' : '';
+
+  document.querySelectorAll('[data-logo]').forEach(b => b.setAttribute('aria-checked', b.dataset.logo === state.logo));
+  document.querySelectorAll('[data-pos]').forEach(b => b.setAttribute('aria-checked', b.dataset.pos === state.pos));
+  document.querySelectorAll('[data-mode]').forEach(b => b.setAttribute('aria-checked', b.dataset.mode === state.mode));
+  $('posName').textContent = POS[state.pos].label;
+  $('customDot').style.background = state.custom;
+  $('mini').style.backgroundImage = has ? `url("${state.url}")` : '';
+
+  const L = LOGOS[state.logo];
+  const curSize = state.sizes[state.logo];
+  setRange($('size'), curSize, L.min, L.max);
+  if (document.activeElement !== $('sizeVal')) {
+    $('sizeVal').value = curSize;
+    $('sizeVal').min = L.min;
+    $('sizeVal').max = L.max;
+  }
+
+  const presetsEl = $('sizePresets');
+  presetsEl.innerHTML = L.presets.map(val => `<button class="preset-pill" type="button" data-size="${val}" aria-pressed="${val === curSize}">${val}px</button>`).join('');
+
+  setRange($('margin'), state.margin);
+  if (document.activeElement !== $('marginVal')) {
+    $('marginVal').value = state.margin;
+  }
+
+  setRange($('zoom'), Math.round(state.zoom * 100));
+  $('zoomOut').textContent = Math.round(state.zoom * 100) + '%';
+}
+
+const update = () => { syncUI(); schedule(); };
+const status = msg => { $('status').textContent = msg; };
+
+/* loading photos */
+function loadFile(file){
+  if (!file) return;
+  if (!/^image\//.test(file.type)){ status("That file isn't an image. Choose a JPG, PNG, or WebP."); return; }
+  const url = URL.createObjectURL(file);
+  const img = new Image();
+  img.onload = () => {
+    if (state.url) URL.revokeObjectURL(state.url);
+    Object.assign(state, {img, url, name:file.name || 'Pasted photo', zoom:1, ox:0, oy:0});
+    const bd = $('backdrop');
+    bd.style.backgroundImage = `url("${url}")`;
+    bd.classList.add('on');
+    status('');
+    update();
+  };
+  img.onerror = () => {
+    URL.revokeObjectURL(url);
+    status("This photo couldn't be opened in the browser. Save it as a JPG or PNG and try again.");
+  };
+  img.src = url;
+}
+
+const fileInput = $('file');
+document.querySelectorAll('[data-pick]').forEach(b => b.addEventListener('click', () => fileInput.click()));
+fileInput.addEventListener('change', () => { loadFile(fileInput.files[0]); fileInput.value = ''; });
+
+window.addEventListener('paste', e => {
+  const item = [...(e.clipboardData?.items || [])].find(i => i.type.startsWith('image/'));
+  if (item){ e.preventDefault(); loadFile(item.getAsFile()); }
+});
+
+let dragDepth = 0;
+window.addEventListener('dragenter', e => { if ([...e.dataTransfer.types].includes('Files')){ dragDepth++; stage.classList.add('drag'); } });
+window.addEventListener('dragleave', () => { dragDepth = Math.max(0, dragDepth - 1); if (!dragDepth) stage.classList.remove('drag'); });
+window.addEventListener('dragover', e => e.preventDefault());
+window.addEventListener('drop', e => {
+  e.preventDefault(); dragDepth = 0; stage.classList.remove('drag');
+  loadFile([...e.dataTransfer.files].find(f => f.type.startsWith('image/')) || e.dataTransfer.files[0]);
+});
+
+/* crop: drag, wheel, keys */
+let pan = null;
+canvas.addEventListener('pointerdown', e => {
+  if (!state.img) return;
+  canvas.setPointerCapture(e.pointerId);
+  pan = {x:e.clientX, y:e.clientY};
+  stage.classList.add('panning');
+});
+canvas.addEventListener('pointermove', e => {
+  if (!pan) return;
+  const k = W / canvas.getBoundingClientRect().width;
+  state.ox += (e.clientX - pan.x) * k;
+  state.oy += (e.clientY - pan.y) * k;
+  pan = {x:e.clientX, y:e.clientY};
+  schedule();
+});
+const endPan = () => { pan = null; stage.classList.remove('panning'); };
+canvas.addEventListener('pointerup', endPan);
+canvas.addEventListener('pointercancel', endPan);
+
+function setZoom(z){
+  const old = state.zoom;
+  state.zoom = clamp(z, 1, 4);
+  state.ox *= state.zoom / old; state.oy *= state.zoom / old;
+  update();
+}
+stage.addEventListener('wheel', e => {
+  if (!state.img) return;
+  e.preventDefault();
+  setZoom(state.zoom * Math.exp(-e.deltaY * .0015));
+}, {passive:false});
+stage.addEventListener('keydown', e => {
+  if (!state.img) return;
+  const step = e.shiftKey ? 60 : 12;
+  const moves = {ArrowLeft:[step,0], ArrowRight:[-step,0], ArrowUp:[0,step], ArrowDown:[0,-step]};
+  if (!moves[e.key]) return;
+  e.preventDefault();
+  state.ox += moves[e.key][0]; state.oy += moves[e.key][1];
+  schedule();
+});
+$('zoom').addEventListener('input', e => setZoom(e.target.value / 100));
+$('resetCrop').addEventListener('click', () => { Object.assign(state, {zoom:1, ox:0, oy:0}); update(); });
+
+/* logo, position, color, size, presets, inputs */
+document.querySelectorAll('[data-logo]').forEach(b => b.addEventListener('click', () => { state.logo = b.dataset.logo; update(); }));
+document.querySelectorAll('[data-pos]').forEach(b => b.addEventListener('click', () => { state.pos = b.dataset.pos; update(); }));
+document.querySelectorAll('.seg[data-mode="white"], .seg[data-mode="black"]').forEach(b =>
+  b.addEventListener('click', () => { state.mode = b.dataset.mode; update(); }));
+const colorInput = $('colorInput');
+colorInput.addEventListener('click', () => { state.mode = 'custom'; update(); });
+colorInput.addEventListener('input', () => { state.mode = 'custom'; state.custom = colorInput.value; update(); });
+
+$('size').addEventListener('input', e => { state.sizes[state.logo] = +e.target.value; update(); });
+$('sizeVal').addEventListener('input', e => {
+  const val = parseInt(e.target.value, 10);
+  if (!isNaN(val)) {
+    const L = LOGOS[state.logo];
+    state.sizes[state.logo] = clamp(val, L.min, L.max);
+    update();
+  }
+});
+$('sizePresets').addEventListener('click', e => {
+  const pill = e.target.closest('[data-size]');
+  if (!pill) return;
+  state.sizes[state.logo] = +pill.dataset.size;
+  update();
+});
+
+$('margin').addEventListener('input', e => { state.margin = +e.target.value; update(); });
+$('marginVal').addEventListener('input', e => {
+  const val = parseInt(e.target.value, 10);
+  if (!isNaN(val)) {
+    state.margin = clamp(val, 0, 240);
+    update();
+  }
+});
+
+/* export */
+$('download').addEventListener('click', () => {
+  if (!state.img) return;
+  render();
+  const btn = $('download');
+  const base = state.name.replace(/\.[^.]+$/, '').replace(/[^a-z0-9]+/gi, '-').replace(/^-+|-+$/g, '').toLowerCase() || 'post';
+  const pos = POS[state.pos].label.toLowerCase().replace(/\s+/g, '-');
+  canvas.toBlob(blob => {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `good-graces-${base}-${pos}.png`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    btn.textContent = 'Downloaded';
+    setTimeout(() => { btn.textContent = 'Download PNG'; }, 1600);
+  }, 'image/png');
+});
+
+/* static glyphs */
+$('brandMark').innerHTML = svgMarkup('monogram', '#1b1a18');
+document.querySelector('[data-logo="monogram"] .glyph').innerHTML = svgMarkup('monogram', '#1b1a18');
+document.querySelector('[data-logo="wordmark"] .glyph').innerHTML = svgMarkup('wordmark', '#1b1a18');
+window.addEventListener('resize', renderMini);
+
+update();
+</script>
+</body>
+</html>
