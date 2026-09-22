@@ -46,6 +46,18 @@
             position: relative;
             cursor: pointer;
             outline: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: flex-start;
+            text-align: left;
+            padding: 1rem;
+        }
+
+        @media (min-width: 640px) {
+            .sound-btn {
+                padding: 1.5rem;
+            }
         }
 
         .sound-btn:hover:not(.active) {
@@ -62,16 +74,10 @@
             color: white;
         }
 
-        .marquee {
-            overflow: hidden;
-            white-space: nowrap;
-            width: 100%;
-        }
-
         #visualizer-container {
             position: relative;
             width: 100%;
-            height: 200px;
+            height: 150px;
             background-color: var(--bg-color);
             border-bottom: 2px solid var(--border-color);
             overflow: hidden;
@@ -79,7 +85,7 @@
 
         @media (min-width: 768px) {
             #visualizer-container {
-                height: 300px;
+                height: 250px;
             }
         }
 
@@ -110,8 +116,8 @@
                 <p class="text-xs sm:text-sm font-bold uppercase tracking-[0.2em] mt-2">Algorithmic Sleep Acoustics</p>
             </div>
             <div class="text-right hidden sm:block">
-                <p class="text-[10px] font-bold uppercase tracking-widest text-gray-500">Vol. 2</p>
-                <p class="text-[10px] font-bold uppercase tracking-widest text-gray-500">Syn. Engine</p>
+                <p class="text-[10px] font-bold uppercase tracking-widest text-gray-500">Vol. 3</p>
+                <p class="text-[10px] font-bold uppercase tracking-widest text-gray-500">Native Media Routing</p>
             </div>
         </header>
 
@@ -122,7 +128,7 @@
             
             <!-- Real-time readouts overlaid on canvas -->
             <div class="absolute top-4 left-4 pointer-events-none mix-blend-difference text-white">
-                <p class="text-[10px] font-mono uppercase tracking-widest opacity-70">OSC / FREQ / LFO</p>
+                <p class="text-[10px] font-mono uppercase tracking-widest opacity-70">GRAPH / DESTINATION</p>
                 <p id="status-readout" class="text-xs font-mono font-bold uppercase mt-1">IDLE</p>
             </div>
             <div class="absolute bottom-4 right-4 pointer-events-none mix-blend-difference text-white text-right">
@@ -131,85 +137,84 @@
             </div>
         </section>
 
-        <!-- Controls Grid (4x2 on desktop, 2x4 on mobile) -->
-        <section class="grid grid-cols-2 md:grid-cols-3 gap-[2px] bg-[var(--border-color)] flex-1">
+        <!-- Controls Grid (Strict 3x3) -->
+        <section class="grid grid-cols-3 gap-[2px] bg-[var(--border-color)] flex-1">
             
-            <button class="grid-cell sound-btn p-4 sm:p-6 flex flex-col justify-between items-start" data-track="white">
-                <span class="text-xl sm:text-2xl md:text-3xl font-black tracking-tighter uppercase">White</span>
-                <span class="text-[10px] font-bold uppercase tracking-widest mt-6 opacity-60">Full Spectrum / Static</span>
+            <button class="grid-cell sound-btn" data-track="white">
+                <span class="text-lg sm:text-2xl md:text-3xl font-black tracking-tighter uppercase">White</span>
+                <span class="text-[8px] sm:text-[10px] font-bold uppercase tracking-widest mt-4 opacity-60">Full Spectrum</span>
             </button>
             
-            <button class="grid-cell sound-btn p-4 sm:p-6 flex flex-col justify-between items-start" data-track="pink">
-                <span class="text-xl sm:text-2xl md:text-3xl font-black tracking-tighter uppercase">Pink</span>
-                <span class="text-[10px] font-bold uppercase tracking-widest mt-6 opacity-60">Balanced / 1/F</span>
+            <button class="grid-cell sound-btn" data-track="pink">
+                <span class="text-lg sm:text-2xl md:text-3xl font-black tracking-tighter uppercase">Pink</span>
+                <span class="text-[8px] sm:text-[10px] font-bold uppercase tracking-widest mt-4 opacity-60">Balanced 1/F</span>
             </button>
             
-            <button class="grid-cell sound-btn p-4 sm:p-6 flex flex-col justify-between items-start" data-track="brown">
-                <span class="text-xl sm:text-2xl md:text-3xl font-black tracking-tighter uppercase">Brown</span>
-                <span class="text-[10px] font-bold uppercase tracking-widest mt-6 opacity-60">Deep / 1/F^2</span>
+            <button class="grid-cell sound-btn" data-track="brown">
+                <span class="text-lg sm:text-2xl md:text-3xl font-black tracking-tighter uppercase">Brown</span>
+                <span class="text-[8px] sm:text-[10px] font-bold uppercase tracking-widest mt-4 opacity-60">Deep 1/F^2</span>
             </button>
 
-            <button class="grid-cell sound-btn p-4 sm:p-6 flex flex-col justify-between items-start" data-track="ocean">
-                <span class="text-xl sm:text-2xl md:text-3xl font-black tracking-tighter uppercase">Ocean</span>
-                <span class="text-[10px] font-bold uppercase tracking-widest mt-6 opacity-60">Brown + 0.1Hz LFO</span>
+            <button class="grid-cell sound-btn" data-track="ocean">
+                <span class="text-lg sm:text-2xl md:text-3xl font-black tracking-tighter uppercase">Ocean</span>
+                <span class="text-[8px] sm:text-[10px] font-bold uppercase tracking-widest mt-4 opacity-60">Low Oscillation</span>
+            </button>
+
+            <button class="grid-cell sound-btn" data-track="rain">
+                <span class="text-lg sm:text-2xl md:text-3xl font-black tracking-tighter uppercase">Rain</span>
+                <span class="text-[8px] sm:text-[10px] font-bold uppercase tracking-widest mt-4 opacity-60">Filtered Pink</span>
             </button>
             
-            <button class="grid-cell sound-btn p-4 sm:p-6 flex flex-col justify-between items-start" data-track="fireplace">
-                <span class="text-xl sm:text-2xl md:text-3xl font-black tracking-tighter uppercase">Fireplace</span>
-                <span class="text-[10px] font-bold uppercase tracking-widest mt-6 opacity-60">Low Roar + Crackle</span>
+            <button class="grid-cell sound-btn" data-track="fireplace">
+                <span class="text-lg sm:text-2xl md:text-3xl font-black tracking-tighter uppercase">Fireplace</span>
+                <span class="text-[8px] sm:text-[10px] font-bold uppercase tracking-widest mt-4 opacity-60">Roar + Crackle</span>
             </button>
             
-            <button class="grid-cell sound-btn p-4 sm:p-6 flex flex-col justify-between items-start" data-track="night">
-                <span class="text-xl sm:text-2xl md:text-3xl font-black tracking-tighter uppercase">Night</span>
-                <span class="text-[10px] font-bold uppercase tracking-widest mt-6 opacity-60">Organic Field + Highway</span>
+            <button class="grid-cell sound-btn" data-track="cabin">
+                <span class="text-lg sm:text-2xl md:text-3xl font-black tracking-tighter uppercase">Cabin</span>
+                <span class="text-[8px] sm:text-[10px] font-bold uppercase tracking-widest mt-4 opacity-60">150Hz Resonant</span>
             </button>
-            
-            <button class="grid-cell sound-btn p-4 sm:p-6 flex flex-col justify-between items-start" data-track="fan">
-                <span class="text-xl sm:text-2xl md:text-3xl font-black tracking-tighter uppercase">Fan</span>
-                <span class="text-[10px] font-bold uppercase tracking-widest mt-6 opacity-60">Brown + 20Hz Flutter</span>
-            </button>
-            
-            <button class="grid-cell sound-btn p-4 sm:p-6 flex flex-col justify-between items-start" data-track="cabin">
-                <span class="text-xl sm:text-2xl md:text-3xl font-black tracking-tighter uppercase">Cabin</span>
-                <span class="text-[10px] font-bold uppercase tracking-widest mt-6 opacity-60">150Hz Drone + AC Hiss</span>
+
+            <button class="grid-cell sound-btn" data-track="night">
+                <span class="text-lg sm:text-2xl md:text-3xl font-black tracking-tighter uppercase">Night</span>
+                <span class="text-[8px] sm:text-[10px] font-bold uppercase tracking-widest mt-4 opacity-60">Sparse Organic</span>
             </button>
 
             <!-- Master Stop Button -->
-            <button id="master-stop-btn" class="grid-cell stop-btn p-4 sm:p-6 flex flex-col justify-between items-start">
-                <span class="text-xl sm:text-2xl md:text-3xl font-black tracking-tighter uppercase">Stop</span>
-                <span class="text-[10px] font-bold uppercase tracking-widest mt-6 opacity-60">Halt Audio Node</span>
+            <button id="master-stop-btn" class="grid-cell stop-btn sound-btn">
+                <span class="text-lg sm:text-2xl md:text-3xl font-black tracking-tighter uppercase">Off</span>
+                <span class="text-[8px] sm:text-[10px] font-bold uppercase tracking-widest mt-4 opacity-60">Halt Stream</span>
             </button>
 
         </section>
     </main>
 
-    <!-- Silent background audio to keep Web Audio alive on locked mobile devices -->
-    <audio id="silent-bg-audio" loop playsinline>
-        <source src="data:audio/mpeg;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU5LjI3LjEwMAAAAAAAAAAAAAAA//+DAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAK//+DAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAK//+DAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAK//+DAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAK//+DAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAK" type="audio/mpeg">
-    </audio>
+    <!-- CRITICAL: Native HTML Audio Element attached to the Web Audio MediaStream -->
+    <audio id="native-audio" loop playsinline></audio>
 
     <script>
         let audioCtx;
         let masterGain;
         let analyzer;
+        let mediaStreamDest;
         
-        let activeNodes = []; // Track all active source/lfo nodes for clean teardown
+        let activeNodes = []; // Track active nodes for teardown
         let isPlaying = false;
         let currentTrackId = null;
         let animationId;
 
         const noiseBuffers = {};
-        const BUFFER_DUR = 5.0; // 5 seconds of mathematically seamless noise
+        const BUFFER_DUR = 5.0; // 5 seconds of seamless mathematical noise
 
         const trackLabels = {
             'white': 'White Noise',
             'pink': 'Pink Noise',
             'brown': 'Brown Noise',
             'ocean': 'Ocean Waves',
+            'rain': 'Heavy Rain',
             'fireplace': 'Fireplace',
-            'night': 'Nighttime Field',
-            'fan': 'Mechanical Fan',
-            'cabin': 'Airplane Cabin'
+            'cabin': 'Airplane Cabin',
+            'night': 'Nighttime Field'
         };
 
         // DOM Elements
@@ -219,16 +224,14 @@
         const statusReadout = document.getElementById('status-readout');
         const soundButtons = document.querySelectorAll('.sound-btn[data-track]');
         const stopBtn = document.getElementById('master-stop-btn');
-        const silentBgAudio = document.getElementById('silent-bg-audio');
+        const nativeAudio = document.getElementById('native-audio');
 
         function resizeCanvas() {
             const container = canvas.parentElement;
-            // High DPI display support for crisp lines
             const dpr = window.devicePixelRatio || 1;
             canvas.width = container.clientWidth * dpr;
             canvas.height = container.clientHeight * dpr;
             canvasCtx.scale(dpr, dpr);
-            // Re-draw immediately to prevent flicker
             if (!isPlaying && !animationId) renderIdleCanvas();
         }
         window.addEventListener('resize', resizeCanvas);
@@ -239,15 +242,21 @@
             const AudioContext = window.AudioContext || window.webkitAudioContext;
             audioCtx = new AudioContext();
             
+            // CRITICAL FIX: Route audio to a MediaStreamDestination Node
+            // This tricks iOS/Android into seeing native media, allowing lock screen play.
+            mediaStreamDest = audioCtx.createMediaStreamDestination();
+            nativeAudio.srcObject = mediaStreamDest.stream;
+            
             masterGain = audioCtx.createGain();
-            masterGain.gain.value = 0; // Start silenced for cross-fade
+            masterGain.gain.value = 0; // Start silenced
             
             analyzer = audioCtx.createAnalyser();
-            analyzer.fftSize = 1024; // High res for oscilloscope
-            analyzer.smoothingTimeConstant = 0.5;
+            analyzer.fftSize = 2048;
+            analyzer.smoothingTimeConstant = 0.8;
             
+            // Graph: MasterGain -> Analyzer -> MediaStreamDestination (NOT audioCtx.destination)
             masterGain.connect(analyzer);
-            analyzer.connect(audioCtx.destination);
+            analyzer.connect(mediaStreamDest);
 
             generateCoreNoiseBuffers();
         }
@@ -264,7 +273,7 @@
             }
             noiseBuffers['white'] = whiteBuffer;
 
-            // 2. PINK NOISE (Paul Kellet's algorithm)
+            // 2. PINK NOISE (Paul Kellet's method)
             const pinkBuffer = audioCtx.createBuffer(1, bufferSize, sampleRate);
             const pinkData = pinkBuffer.getChannelData(0);
             let b0=0, b1=0, b2=0, b3=0, b4=0, b5=0, b6=0;
@@ -293,20 +302,6 @@
                 brownData[i] *= 3.5; 
             }
             noiseBuffers['brown'] = brownBuffer;
-
-            // 4. CRACKLE BUFFER (Sparse Impulses for Fireplace)
-            const crackleBuffer = audioCtx.createBuffer(1, sampleRate * 2.5, sampleRate);
-            const crackleData = crackleBuffer.getChannelData(0);
-            for (let i = 0; i < crackleData.length; i++) {
-                if (Math.random() < 0.0004) { // Rare spikes
-                    const impulse = (Math.random() * 2 - 1) * 3.0;
-                    crackleData[i] = impulse;
-                    // Add slight decay to adjacent samples to simulate resonant woody pop instead of digital click
-                    if (i+1 < crackleData.length) crackleData[i+1] = impulse * 0.5;
-                    if (i+2 < crackleData.length) crackleData[i+2] = impulse * 0.1;
-                }
-            }
-            noiseBuffers['crackle'] = crackleBuffer;
         }
 
         function stopAndClearNodes() {
@@ -319,7 +314,6 @@
             activeNodes = [];
         }
 
-        // Helper to get endless loop source
         function getBufferSource(type) {
             const src = audioCtx.createBufferSource();
             src.buffer = noiseBuffers[type];
@@ -336,263 +330,206 @@
                 const src = getBufferSource(trackId);
                 src.connect(masterGain);
                 src.start();
-                statusReadout.textContent = `RAW BUFFER [${trackId.toUpperCase()}] ACTIVE`;
+                statusReadout.textContent = `BUFFER [${trackId.toUpperCase()}] -> MEDIA_STREAM`;
             } 
             
             else if (trackId === 'ocean') {
                 const src = getBufferSource('brown');
-                
-                // Muffle the brown noise
                 const filter = audioCtx.createBiquadFilter();
                 filter.type = 'lowpass';
                 filter.frequency.value = 400;
                 
-                // Swell gain
                 const swell = audioCtx.createGain();
-                swell.gain.value = 0.4; // Base floor volume
+                swell.gain.value = 0.4; 
                 
-                // Very slow sine wave LFO
                 const lfo = audioCtx.createOscillator();
                 lfo.type = 'sine';
-                lfo.frequency.value = 0.06; // Approx 16s cycle
+                lfo.frequency.value = 0.06; // Very slow 16s ocean swell
                 activeNodes.push(lfo);
 
                 const lfoDepth = audioCtx.createGain();
-                lfoDepth.gain.value = 0.6; // Swell amplitude
+                lfoDepth.gain.value = 0.6; 
 
-                lfo.connect(lfoDepth);
-                lfoDepth.connect(swell.gain);
-
-                src.connect(filter);
-                filter.connect(swell);
-                swell.connect(masterGain);
+                lfo.connect(lfoDepth).connect(swell.gain);
+                src.connect(filter).connect(swell).connect(masterGain);
 
                 lfo.start();
                 src.start();
-                statusReadout.textContent = `BROWN_BUF -> LPF(400) -> VCA(LFO:0.06Hz)`;
+                statusReadout.textContent = `BROWN -> LPF(400) -> VCA(LFO:0.06Hz)`;
+            }
+
+            else if (trackId === 'rain') {
+                // Pink noise heavily filtered to sound like rain hiss
+                const src = getBufferSource('pink');
+                
+                const bandpass = audioCtx.createBiquadFilter();
+                bandpass.type = 'peaking';
+                bandpass.frequency.value = 1200;
+                bandpass.Q.value = 0.5;
+                bandpass.gain.value = 10;
+                
+                const highpass = audioCtx.createBiquadFilter();
+                highpass.type = 'highpass';
+                highpass.frequency.value = 300;
+
+                src.connect(bandpass).connect(highpass).connect(masterGain);
+                src.start();
+                statusReadout.textContent = `PINK -> PEAK(1.2k) -> HPF(300)`;
             }
 
             else if (trackId === 'fireplace') {
-                // Deep low roar of the fire
+                // Deep low roar
                 const roarSrc = getBufferSource('brown');
                 const roarFilter = audioCtx.createBiquadFilter();
                 roarFilter.type = 'lowpass';
-                roarFilter.frequency.value = 150; // Deep rumble
+                roarFilter.frequency.value = 150; 
                 const roarGain = audioCtx.createGain();
-                roarGain.gain.value = 2.0; // Boosted presence
+                roarGain.gain.value = 2.0; 
                 
                 roarSrc.connect(roarFilter).connect(roarGain).connect(masterGain);
                 roarSrc.start();
 
-                // Algorithmic Snaps and Crackles
+                // Algorithmic Crackles
                 let crackleTimer;
                 const scheduleCrackle = () => {
                     if (!isPlaying || currentTrackId !== 'fireplace') return;
                     
                     const now = audioCtx.currentTime;
-                    
-                    // Generate a sharp burst of white noise
                     const burstSrc = audioCtx.createBufferSource();
                     burstSrc.buffer = noiseBuffers['white'];
                     
-                    // Filter it to the "snap" frequencies of wood
                     const bpFilter = audioCtx.createBiquadFilter();
                     bpFilter.type = 'bandpass';
-                    bpFilter.frequency.value = 3000 + Math.random() * 2000; // 3k - 5k range
+                    bpFilter.frequency.value = 3000 + Math.random() * 2000;
                     bpFilter.Q.value = 1.0;
 
-                    // Shape the burst into a sharp, percussive crackle
                     const env = audioCtx.createGain();
                     env.gain.setValueAtTime(0, now);
-                    env.gain.linearRampToValueAtTime(1.0 + Math.random() * 1.5, now + 0.005); // Instant harsh attack
-                    env.gain.exponentialRampToValueAtTime(0.001, now + 0.05 + Math.random() * 0.1); // Rapid decay
+                    env.gain.linearRampToValueAtTime(1.0 + Math.random(), now + 0.005); 
+                    env.gain.exponentialRampToValueAtTime(0.001, now + 0.05 + Math.random() * 0.1); 
 
                     burstSrc.connect(bpFilter).connect(env).connect(masterGain);
                     burstSrc.start(now);
-                    burstSrc.stop(now + 0.2); // Auto-cleanup this specific node
+                    burstSrc.stop(now + 0.2); 
                     
-                    // Schedule next random crackle (100ms to 900ms gap)
-                    const nextTime = 100 + Math.random() * 800;
-                    crackleTimer = setTimeout(scheduleCrackle, nextTime);
+                    crackleTimer = setTimeout(scheduleCrackle, 100 + Math.random() * 800);
                 };
-                
-                // Start the crackle loop
                 scheduleCrackle();
                 
-                // Ensure the crackle timer gets cleaned up when stopping
                 activeNodes.push({
                     stop: () => clearTimeout(crackleTimer),
                     disconnect: () => {}
                 });
 
-                statusReadout.textContent = `BROWN(LPF150) + RND_WHITE(BPF+EXP_ENV)`;
-            }
-
-            else if (trackId === 'night') {
-                // Dark ambient breeze
-                const windSrc = getBufferSource('pink');
-                const windFilter = audioCtx.createBiquadFilter();
-                windFilter.type = 'lowpass';
-                windFilter.frequency.value = 300; // Very muted, dark wind
-                
-                const windGain = audioCtx.createGain();
-                windGain.gain.value = 0.6; // Soft baseline
-                
-                // Gentle swell for the breeze
-                const breezeLfo = audioCtx.createOscillator();
-                breezeLfo.type = 'sine';
-                breezeLfo.frequency.value = 0.05; // 20s rolling cycle
-                activeNodes.push(breezeLfo);
-                
-                const breezeDepth = audioCtx.createGain();
-                breezeDepth.gain.value = 0.4;
-                
-                breezeLfo.connect(breezeDepth).connect(windGain.gain);
-                windSrc.connect(windFilter).connect(windGain).connect(masterGain);
-                
-                breezeLfo.start();
-                windSrc.start();
-
-                // Faint, organic crickets using Amplitude Modulation
-                let cricketTimer;
-                const scheduleCricket = () => {
-                    if (!isPlaying || currentTrackId !== 'night') return;
-                    
-                    const now = audioCtx.currentTime;
-                    
-                    // Base tone
-                    const osc = audioCtx.createOscillator();
-                    osc.type = 'sine';
-                    osc.frequency.value = 4000 + Math.random() * 600; // 4k-4.6k range
-                    
-                    // Trill effect (Amplitude Modulation)
-                    const trillLfo = audioCtx.createOscillator();
-                    trillLfo.type = 'sine';
-                    trillLfo.frequency.value = 40 + Math.random() * 5; // Rapid ~40Hz flutter
-                    
-                    const trillGain = audioCtx.createGain();
-                    
-                    // Shaping the overall cricket chirp (very soft attack and release)
-                    const env = audioCtx.createGain();
-                    env.gain.setValueAtTime(0, now);
-                    env.gain.linearRampToValueAtTime(0.015, now + 1.0); // Extremely soft, distant volume
-                    env.gain.linearRampToValueAtTime(0, now + 2.5); // Slow fade out
-
-                    // Connect modulation
-                    trillLfo.connect(trillGain.gain);
-                    osc.connect(trillGain);
-                    trillGain.connect(env).connect(masterGain);
-                    
-                    osc.start(now);
-                    trillLfo.start(now);
-                    
-                    // Cleanup these specific nodes
-                    osc.stop(now + 3);
-                    trillLfo.stop(now + 3);
-
-                    // Schedule next faint cricket
-                    cricketTimer = setTimeout(scheduleCricket, 3000 + Math.random() * 6000);
-                };
-                
-                scheduleCricket();
-                
-                // Ensure the timer gets cleaned up when stopping
-                activeNodes.push({
-                    stop: () => clearTimeout(cricketTimer),
-                    disconnect: () => {}
-                });
-
-                statusReadout.textContent = `PINK(LPF300) + SINE_AM(40Hz+SOFT_ENV)`;
-            }
-
-            else if (trackId === 'fan') {
-                const src = getBufferSource('brown');
-                
-                // Emphasize motor hum frequencies
-                const filter = audioCtx.createBiquadFilter();
-                filter.type = 'peaking';
-                filter.frequency.value = 250;
-                filter.Q.value = 1.5;
-                filter.gain.value = 5;
-
-                // Flutter gain
-                const flutterGain = audioCtx.createGain();
-                flutterGain.gain.value = 0.7; // Base volume
-                
-                // Fast sine LFO for blade flutter
-                const lfo = audioCtx.createOscillator();
-                lfo.type = 'sine';
-                lfo.frequency.value = 22; // 22Hz blade rotation sound
-                activeNodes.push(lfo);
-
-                const lfoDepth = audioCtx.createGain();
-                lfoDepth.gain.value = 0.3; // Flutter depth
-
-                lfo.connect(lfoDepth);
-                lfoDepth.connect(flutterGain.gain);
-
-                src.connect(filter);
-                filter.connect(flutterGain);
-                flutterGain.connect(masterGain);
-
-                lfo.start();
-                src.start();
-                statusReadout.textContent = `BROWN_BUF -> PK_FLT(250) -> VCA(22Hz)`;
+                statusReadout.textContent = `BROWN(LPF150) + RND_WHITE_IMPULSE`;
             }
 
             else if (trackId === 'cabin') {
-                // Deep engine resonance
+                // Deep resonant engine
                 const droneSrc = getBufferSource('brown');
                 const droneFilter = audioCtx.createBiquadFilter();
                 droneFilter.type = 'lowpass';
                 droneFilter.frequency.value = 150;
-                droneFilter.Q.value = 3.5; // High resonance for that specific humming engine peak
+                droneFilter.Q.value = 3.5; // High resonance
                 const droneGain = audioCtx.createGain();
-                droneGain.gain.value = 1.8;
+                droneGain.gain.value = 2.0;
                 
                 droneSrc.connect(droneFilter).connect(droneGain).connect(masterGain);
                 droneSrc.start();
 
-                // Faint AC / Airflow Hiss
+                // AC Hiss
                 const hissSrc = getBufferSource('pink');
                 const hissFilter = audioCtx.createBiquadFilter();
                 hissFilter.type = 'highpass';
                 hissFilter.frequency.value = 4500;
                 const hissGain = audioCtx.createGain();
-                hissGain.gain.value = 0.12; 
+                hissGain.gain.value = 0.15; 
                 
                 hissSrc.connect(hissFilter).connect(hissGain).connect(masterGain);
                 hissSrc.start();
 
                 statusReadout.textContent = `BROWN(LPF150/Q3.5) + PINK(HPF4.5k)`;
             }
+
+            else if (trackId === 'night') {
+                // Muted ambient breeze
+                const windSrc = getBufferSource('pink');
+                const windFilter = audioCtx.createBiquadFilter();
+                windFilter.type = 'lowpass';
+                windFilter.frequency.value = 300; 
+                
+                const windGain = audioCtx.createGain();
+                windGain.gain.value = 0.5; 
+                
+                windSrc.connect(windFilter).connect(windGain).connect(masterGain);
+                windSrc.start();
+
+                // Extremely sparse, soft crickets via Amplitude Modulation
+                let cricketTimer;
+                const scheduleCricket = () => {
+                    if (!isPlaying || currentTrackId !== 'night') return;
+                    
+                    const now = audioCtx.currentTime;
+                    const osc = audioCtx.createOscillator();
+                    osc.type = 'sine';
+                    osc.frequency.value = 4000 + Math.random() * 500; 
+                    
+                    const trillLfo = audioCtx.createOscillator();
+                    trillLfo.type = 'sine';
+                    trillLfo.frequency.value = 30 + Math.random() * 10; 
+                    
+                    const trillGain = audioCtx.createGain();
+                    
+                    const env = audioCtx.createGain();
+                    env.gain.setValueAtTime(0, now);
+                    env.gain.linearRampToValueAtTime(0.01, now + 1.5); // Very soft fade in
+                    env.gain.linearRampToValueAtTime(0, now + 3.0); 
+
+                    trillLfo.connect(trillGain.gain);
+                    osc.connect(trillGain).connect(env).connect(masterGain);
+                    
+                    osc.start(now);
+                    trillLfo.start(now);
+                    
+                    osc.stop(now + 4);
+                    trillLfo.stop(now + 4);
+
+                    cricketTimer = setTimeout(scheduleCricket, 4000 + Math.random() * 8000); // 4-12 sec gap
+                };
+                scheduleCricket();
+                
+                activeNodes.push({
+                    stop: () => clearTimeout(cricketTimer),
+                    disconnect: () => {}
+                });
+
+                statusReadout.textContent = `PINK(LPF300) + SPARSE_AM_SINE`;
+            }
         }
 
         function playAudio(trackId) {
             initAudioEngine();
-            if (audioCtx.state === 'suspended') {
-                audioCtx.resume();
-            }
+            if (audioCtx.state === 'suspended') audioCtx.resume();
 
             currentTrackId = trackId;
             isPlaying = true;
 
             buildSoundPatch(trackId);
 
-            // Cross-fade in to prevent speaker pop
+            // Cross-fade in
             masterGain.gain.cancelScheduledValues(audioCtx.currentTime);
             masterGain.gain.setValueAtTime(0, audioCtx.currentTime);
             masterGain.gain.linearRampToValueAtTime(1, audioCtx.currentTime + 0.5);
             
-            // Background lock-screen keepalive hack
-            silentBgAudio.play().catch(e => console.log("Bg keepalive blocked", e));
+            // Start the native HTML audio element (crucial for lock-screen play)
+            nativeAudio.play().catch(e => console.log("Native playback pending interaction", e));
             
-            // Media Session API for lock screen controls
+            // Media Session API 
             if ('mediaSession' in navigator) {
                 navigator.mediaSession.metadata = new MediaMetadata({
                     title: trackLabels[trackId],
-                    artist: 'Nocturne Engine',
-                    album: 'Generative Audio',
+                    artist: 'Nocturne Synthesis',
+                    album: 'Swiss Sleep Audio',
                 });
                 navigator.mediaSession.setActionHandler('play', () => playAudio(currentTrackId));
                 navigator.mediaSession.setActionHandler('pause', stopAudio);
@@ -608,7 +545,6 @@
             currentTrackId = null;
 
             if (audioCtx) {
-                // Fade out smoothly
                 masterGain.gain.cancelScheduledValues(audioCtx.currentTime);
                 masterGain.gain.setValueAtTime(masterGain.gain.value, audioCtx.currentTime);
                 masterGain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.3);
@@ -618,10 +554,9 @@
                 }, 350);
             }
 
-            silentBgAudio.pause();
+            nativeAudio.pause();
             updateUI();
             
-            // Halt visualization
             if (animationId) {
                 cancelAnimationFrame(animationId);
                 animationId = null;
@@ -642,7 +577,7 @@
                 trackReadout.textContent = trackLabels[currentTrackId];
             } else {
                 trackReadout.textContent = 'Silence';
-                statusReadout.textContent = 'SYSTEM IDLE';
+                statusReadout.textContent = 'SYSTEM IDLE / AUDIO STOPPED';
             }
         }
 
@@ -653,7 +588,6 @@
             
             const bufferLength = analyzer.frequencyBinCount;
             const dataArray = new Uint8Array(bufferLength);
-            // Get raw waveform data
             analyzer.getByteTimeDomainData(dataArray);
 
             const width = canvas.width / (window.devicePixelRatio || 1);
@@ -661,7 +595,7 @@
 
             canvasCtx.clearRect(0, 0, width, height);
 
-            // Draw grid lines
+            // Draw center grid line
             canvasCtx.lineWidth = 1;
             canvasCtx.strokeStyle = 'rgba(17,17,17,0.1)';
             canvasCtx.beginPath();
@@ -669,7 +603,7 @@
             canvasCtx.lineTo(width, height/2);
             canvasCtx.stroke();
 
-            // Draw Waveform (Crisp Black Line)
+            // Draw Waveform 
             canvasCtx.lineWidth = 1.5;
             canvasCtx.strokeStyle = '#111111';
             canvasCtx.beginPath();
@@ -678,9 +612,8 @@
             let x = 0;
 
             for (let i = 0; i < bufferLength; i++) {
-                const v = dataArray[i] / 128.0; // Normalized 0-2
-                // Compress amplitude slightly for visual elegance
-                const adjustedV = 1 + (v - 1) * 0.8; 
+                const v = dataArray[i] / 128.0; 
+                const adjustedV = 1 + (v - 1) * 0.9; // Slight compression
                 const y = adjustedV * height / 2;
 
                 if (i === 0) canvasCtx.moveTo(x, y);
@@ -691,7 +624,6 @@
             canvasCtx.stroke();
         }
 
-        // Draws a flatline when audio is stopped
         function renderIdleCanvas() {
             const width = canvas.width / (window.devicePixelRatio || 1);
             const height = canvas.height / (window.devicePixelRatio || 1);
@@ -709,7 +641,7 @@
             btn.addEventListener('click', () => {
                 const track = btn.dataset.track;
                 if (currentTrackId === track) {
-                    stopAudio(); // Toggle off if already playing
+                    stopAudio(); 
                 } else {
                     playAudio(track);
                 }
@@ -717,7 +649,7 @@
         });
 
         stopBtn.addEventListener('click', stopAudio);
-
+        
         // Initial setup
         resizeCanvas();
 
