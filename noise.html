@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sleep Noise | Swiss Editorial Web Audio</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <style>
+        :root {
+            --bg-color: #f4f4f4;
+            --text-color: #111111;
+            --accent-color: #e5e5e5;
+            --border-color: #111111;
+        }
+        
+        body {
+            font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .grid-container {
+            border: 2px solid var(--border-color);
+            background-color: var(--text-color);
+            gap: 2px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .grid-cell {
+            background-color: var(--bg-color);
+        }
+
+        .sound-btn {
+            transition: background-color 0.1s ease, color 0.1s ease;
+            position: relative;
+            cursor: pointer;
+            outline: none;
+        }
+
+        .sound-btn:hover:not(.active) {
+            background-color: var(--accent-color);
+        }
+        
+        .sound-btn.active {
+            background-color: var(--text-color);
+            color: var(--bg-color);
+        }
+        
+        .stop-btn:hover {
+            background-color: #ff3333;
+            color: white;
+        }
+
+        .marquee {
+            overflow: hidden;
+            white-space: nowrap;
+            width: 100%;
+        }
+
+        #visualizer-container {
+            position: relative;
+            width: 100%;
+            height: 200px;
+            background-color: var(--bg-color);
+            border-bottom: 2px solid var(--border-color);
+            overflow: hidden;
+        }
+
+        @media (min-width: 768px) {
+            #visualizer-container {
+                height: 300px;
+            }
+        }
+
+        #visualizer {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        .scanline {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(0,0,0,0.05) 50%, rgba(0,0,0,0.05));
+            background-size: 100% 4px;
+            pointer-events: none;
+            z-index: 10;
+        }
+    </style>
+</head>
+<body class="p-2 sm:p-4 md:p-8">
+
+    <main class="flex-1 flex flex-col max-w-6xl mx-auto w-full grid-container shadow-2xl">
+        
+        <!-- Header -->
+        <header class="p-4 sm:p-6 md:p-8 grid-cell flex justify-between items-end">
+            <div>
+                <h1 class="text-3xl sm:text-5xl md:text-6xl font-black tracking-tighter leading-none uppercase m-0 p-0">Nocturne</h1>
+                <p class="text-xs sm:text-sm font-bold uppercase tracking-[0.2em] mt-2">Algorithmic Sleep Acoustics</p>
+            </div>
+            <div class="text-right hidden sm:block">
+                <p class="text-[10px] font-bold uppercase tracking-widest text-gray-500">Vol. 2</p>
+                <p class="text-[10px] font-bold uppercase tracking-widest text-gray-500">Syn. Engine</p>
+            </div>
+        </header>
+
+        <!-- Visualizer Area -->
+        <section id="visualizer-container" class="grid-cell">
+            <canvas id="visualizer"></canvas>
+            <div class="scanline"></div>
+            
+            <!-- Real-time readouts overlaid on canvas -->
+            <div class="absolute top-4 left-4 pointer-events-none mix-blend-difference text-white">
+                <p class="text-[10px] font-mono uppercase tracking-widest opacity-70">OSC / FREQ / LFO</p>
+                <p id="status-readout" class="text-xs font-mono font-bold uppercase mt-1">IDLE</p>
+            </div>
+            <div class="absolute bottom-4 right-4 pointer-events-none mix-blend-difference text-white text-right">
+                <p class="text-[10px] font-mono uppercase tracking-widest opacity-70">Output</p>
+                <p id="track-readout" class="text-2xl sm:text-4xl font-black tracking-tighter uppercase mt-1">Silence</p>
+            </div>
+        </section>
+
+        <!-- Controls Grid (4x2 on desktop, 2x4 on mobile) -->
+        <section class="grid grid-cols-2 md:grid-cols-3 gap-[2px] bg-[var(--border-color)] flex-1">
+            
+            <button class="grid-cell sound-btn p-4 sm:p-6 flex flex-col justify-between items-start" data-track="white">
+                <span class="text-xl sm:text-2xl md:text-3xl font-black tracking-tighter uppercase">White</span>
+                <span class="text-[10px] font-bold uppercase tracking-widest mt-6 opacity-60">Full Spectrum / Static</span>
+            </button>
+            
+            <button class="grid-cell sound-btn p-4 sm:p-6 flex flex-col justify-between items-start" data-track="pink">
+                <span class="text-xl sm:text-2xl md:text-3xl font-black tracking-tighter uppercase">Pink</span>
+                <span class="text-[10px] font-bold uppercase tracking-widest mt-6 opacity-60">Balanced / 1/F</span>
+            </button>
+            
+            <button class="grid-cell sound-btn p-4 sm:p-6 flex flex-col justify-between items-start" data-track="brown">
+                <span class="text-xl sm:text-2xl md:text-3xl font-black tracking-tighter uppercase">Brown</span>
+                <span class="text-[10px] font-bold uppercase tracking-widest mt-6 opacity-60">Deep / 1/F^2</span>
+            </button>
+
+            <button class="grid-cell sound-btn p-4 sm:p-6 flex flex-col justify-between items-start" data-track="ocean">
+                <span class="text-xl sm:text-2xl md:text-3xl font-black tracking-tighter uppercase">Ocean</span>
+                <span class="text-[10px] font-bold uppercase tracking-widest mt-6 opacity-60">Brown + 0.1Hz LFO</span>
+            </button>
+            
+            <button class="grid-cell sound-btn p-4 sm:p-6 flex flex-col justify-between items-start" data-track="fireplace">
+                <span class="text-xl sm:text-2xl md:text-3xl font-black tracking-tighter uppercase">Fireplace</span>
+                <span class="text-[10px] font-bold uppercase tracking-widest mt-6 opacity-60">Low Roar + Crackle</span>
+            </button>
+            
+            <button class="grid-cell sound-btn p-4 sm:p-6 flex flex-col justify-between items-start" data-track="night">
+                <span class="text-xl sm:text-2xl md:text-3xl font-black tracking-tighter uppercase">Night</span>
+                <span class="text-[10px] font-bold uppercase tracking-widest mt-6 opacity-60">Organic Field + Highway</span>
+            </button>
+            
+            <button class="grid-cell sound-btn p-4 sm:p-6 flex flex-col justify-between items-start" data-track="fan">
+                <span class="text-xl sm:text-2xl md:text-3xl font-black tracking-tighter uppercase">Fan</span>
+                <span class="text-[10px] font-bold uppercase tracking-widest mt-6 opacity-60">Brown + 20Hz Flutter</span>
+            </button>
+            
+            <button class="grid-cell sound-btn p-4 sm:p-6 flex flex-col justify-between items-start" data-track="cabin">
+                <span class="text-xl sm:text-2xl md:text-3xl font-black tracking-tighter uppercase">Cabin</span>
+                <span class="text-[10px] font-bold uppercase tracking-widest mt-6 opacity-60">150Hz Drone + AC Hiss</span>
+            </button>
+
+            <!-- Master Stop Button -->
+            <button id="master-stop-btn" class="grid-cell stop-btn p-4 sm:p-6 flex flex-col justify-between items-start">
+                <span class="text-xl sm:text-2xl md:text-3xl font-black tracking-tighter uppercase">Stop</span>
+                <span class="text-[10px] font-bold uppercase tracking-widest mt-6 opacity-60">Halt Audio Node</span>
+            </button>
+
+        </section>
+    </main>
+
+    <!-- Silent background audio to keep Web Audio alive on locked mobile devices -->
+    <audio id="silent-bg-audio" loop playsinline>
+        <source src="data:audio/mpeg;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU5LjI3LjEwMAAAAAAAAAAAAAAA//+DAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAK//+DAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAK//+DAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAK//+DAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAK//+DAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAK" type="audio/mpeg">
+    </audio>
+
+    <script>
+        let audioCtx;
+        let masterGain;
+        let analyzer;
+        
+        let activeNodes = []; // Track all active source/lfo nodes for clean teardown
+        let isPlaying = false;
+        let currentTrackId = null;
+        let animationId;
+
+        const noiseBuffers = {};
+        const BUFFER_DUR = 5.0; // 5 seconds of mathematically seamless noise
+
+        const trackLabels = {
+            'white': 'White Noise',
+            'pink': 'Pink Noise',
+            'brown': 'Brown Noise',
+            'ocean': 'Ocean Waves',
+            'fireplace': 'Fireplace',
+            'night': 'Nighttime Field',
+            'fan': 'Mechanical Fan',
+            'cabin': 'Airplane Cabin'
+        };
+
+        // DOM Elements
+        const canvas = document.getElementById('visualizer');
+        const canvasCtx = canvas.getContext('2d');
+        const trackReadout = document.getElementById('track-readout');
+        const statusReadout = document.getElementById('status-readout');
+        const soundButtons = document.querySelectorAll('.sound-btn[data-track]');
+        const stopBtn = document.getElementById('master-stop-btn');
+        const silentBgAudio = document.getElementById('silent-bg-audio');
+
+        function resizeCanvas() {
+            const container = canvas.parentElement;
+            // High DPI display support for crisp lines
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = container.clientWidth * dpr;
+            canvas.height = container.clientHeight * dpr;
+            canvasCtx.scale(dpr, dpr);
+            // Re-draw immediately to prevent flicker
+            if (!isPlaying && !animationId) renderIdleCanvas();
+        }
+        window.addEventListener('resize', resizeCanvas);
+
+        function initAudioEngine() {
+            if (audioCtx) return;
+            
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            audioCtx = new AudioContext();
+            
+            masterGain = audioCtx.createGain();
+            masterGain.gain.value = 0; // Start silenced for cross-fade
+            
+            analyzer = audioCtx.createAnalyser();
+            analyzer.fftSize = 1024; // High res for oscilloscope
+            analyzer.smoothingTimeConstant = 0.5;
+            
+            masterGain.connect(analyzer);
+            analyzer.connect(audioCtx.destination);
+
+            generateCoreNoiseBuffers();
+        }
+
+        function generateCoreNoiseBuffers() {
+            const sampleRate = audioCtx.sampleRate;
+            const bufferSize = sampleRate * BUFFER_DUR;
+            
+            // 1. WHITE NOISE
+            const whiteBuffer = audioCtx.createBuffer(1, bufferSize, sampleRate);
+            const whiteData = whiteBuffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) {
+                whiteData[i] = Math.random() * 2 - 1;
+            }
+            noiseBuffers['white'] = whiteBuffer;
+
+            // 2. PINK NOISE (Paul Kellet's algorithm)
+            const pinkBuffer = audioCtx.createBuffer(1, bufferSize, sampleRate);
+            const pinkData = pinkBuffer.getChannelData(0);
+            let b0=0, b1=0, b2=0, b3=0, b4=0, b5=0, b6=0;
+            for (let i = 0; i < bufferSize; i++) {
+                let white = Math.random() * 2 - 1;
+                b0 = 0.99886 * b0 + white * 0.0555179;
+                b1 = 0.99332 * b1 + white * 0.0750759;
+                b2 = 0.96900 * b2 + white * 0.1538520;
+                b3 = 0.86650 * b3 + white * 0.3104856;
+                b4 = 0.55000 * b4 + white * 0.5329522;
+                b5 = -0.7616 * b5 - white * 0.0168980;
+                pinkData[i] = b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362;
+                pinkData[i] *= 0.11; 
+                b6 = white * 0.115926;
+            }
+            noiseBuffers['pink'] = pinkBuffer;
+
+            // 3. BROWN NOISE (Integration)
+            const brownBuffer = audioCtx.createBuffer(1, bufferSize, sampleRate);
+            const brownData = brownBuffer.getChannelData(0);
+            let lastOut = 0;
+            for (let i = 0; i < bufferSize; i++) {
+                let white = Math.random() * 2 - 1;
+                brownData[i] = (lastOut + (0.02 * white)) / 1.02;
+                lastOut = brownData[i];
+                brownData[i] *= 3.5; 
+            }
+            noiseBuffers['brown'] = brownBuffer;
+
+            // 4. CRACKLE BUFFER (Sparse Impulses for Fireplace)
+            const crackleBuffer = audioCtx.createBuffer(1, sampleRate * 2.5, sampleRate);
+            const crackleData = crackleBuffer.getChannelData(0);
+            for (let i = 0; i < crackleData.length; i++) {
+                if (Math.random() < 0.0004) { // Rare spikes
+                    const impulse = (Math.random() * 2 - 1) * 3.0;
+                    crackleData[i] = impulse;
+                    // Add slight decay to adjacent samples to simulate resonant woody pop instead of digital click
+                    if (i+1 < crackleData.length) crackleData[i+1] = impulse * 0.5;
+                    if (i+2 < crackleData.length) crackleData[i+2] = impulse * 0.1;
+                }
+            }
+            noiseBuffers['crackle'] = crackleBuffer;
+        }
+
+        function stopAndClearNodes() {
+            activeNodes.forEach(node => {
+                try {
+                    if (node.stop) node.stop();
+                    node.disconnect();
+                } catch(e) {}
+            });
+            activeNodes = [];
+        }
+
+        // Helper to get endless loop source
+        function getBufferSource(type) {
+            const src = audioCtx.createBufferSource();
+            src.buffer = noiseBuffers[type];
+            src.loop = true;
+            activeNodes.push(src);
+            return src;
+        }
+
+        function buildSoundPatch(trackId) {
+            stopAndClearNodes();
+            statusReadout.textContent = `COMPILING: ${trackId.toUpperCase()}...`;
+
+            if (trackId === 'white' || trackId === 'pink' || trackId === 'brown') {
+                const src = getBufferSource(trackId);
+                src.connect(masterGain);
+                src.start();
+                statusReadout.textContent = `RAW BUFFER [${trackId.toUpperCase()}] ACTIVE`;
+            } 
+            
+            else if (trackId === 'ocean') {
+                const src = getBufferSource('brown');
+                
+                // Muffle the brown noise
+                const filter = audioCtx.createBiquadFilter();
+                filter.type = 'lowpass';
+                filter.frequency.value = 400;
+                
+                // Swell gain
+                const swell = audioCtx.createGain();
+                swell.gain.value = 0.4; // Base floor volume
+                
+                // Very slow sine wave LFO
+                const lfo = audioCtx.createOscillator();
+                lfo.type = 'sine';
+                lfo.frequency.value = 0.06; // Approx 16s cycle
+                activeNodes.push(lfo);
+
+                const lfoDepth = audioCtx.createGain();
+                lfoDepth.gain.value = 0.6; // Swell amplitude
+
+                lfo.connect(lfoDepth);
+                lfoDepth.connect(swell.gain);
+
+                src.connect(filter);
+                filter.connect(swell);
+                swell.connect(masterGain);
+
+                lfo.start();
+                src.start();
+                statusReadout.textContent = `BROWN_BUF -> LPF(400) -> VCA(LFO:0.06Hz)`;
+            }
+
+            else if (trackId === 'fireplace') {
+                // Deep low roar of the fire
+                const roarSrc = getBufferSource('brown');
+                const roarFilter = audioCtx.createBiquadFilter();
+                roarFilter.type = 'lowpass';
+                roarFilter.frequency.value = 150; // Deep rumble
+                const roarGain = audioCtx.createGain();
+                roarGain.gain.value = 2.0; // Boosted presence
+                
+                roarSrc.connect(roarFilter).connect(roarGain).connect(masterGain);
+                roarSrc.start();
+
+                // Algorithmic Snaps and Crackles
+                let crackleTimer;
+                const scheduleCrackle = () => {
+                    if (!isPlaying || currentTrackId !== 'fireplace') return;
+                    
+                    const now = audioCtx.currentTime;
+                    
+                    // Generate a sharp burst of white noise
+                    const burstSrc = audioCtx.createBufferSource();
+                    burstSrc.buffer = noiseBuffers['white'];
+                    
+                    // Filter it to the "snap" frequencies of wood
+                    const bpFilter = audioCtx.createBiquadFilter();
+                    bpFilter.type = 'bandpass';
+                    bpFilter.frequency.value = 3000 + Math.random() * 2000; // 3k - 5k range
+                    bpFilter.Q.value = 1.0;
+
+                    // Shape the burst into a sharp, percussive crackle
+                    const env = audioCtx.createGain();
+                    env.gain.setValueAtTime(0, now);
+                    env.gain.linearRampToValueAtTime(1.0 + Math.random() * 1.5, now + 0.005); // Instant harsh attack
+                    env.gain.exponentialRampToValueAtTime(0.001, now + 0.05 + Math.random() * 0.1); // Rapid decay
+
+                    burstSrc.connect(bpFilter).connect(env).connect(masterGain);
+                    burstSrc.start(now);
+                    burstSrc.stop(now + 0.2); // Auto-cleanup this specific node
+                    
+                    // Schedule next random crackle (100ms to 900ms gap)
+                    const nextTime = 100 + Math.random() * 800;
+                    crackleTimer = setTimeout(scheduleCrackle, nextTime);
+                };
+                
+                // Start the crackle loop
+                scheduleCrackle();
+                
+                // Ensure the crackle timer gets cleaned up when stopping
+                activeNodes.push({
+                    stop: () => clearTimeout(crackleTimer),
+                    disconnect: () => {}
+                });
+
+                statusReadout.textContent = `BROWN(LPF150) + RND_WHITE(BPF+EXP_ENV)`;
+            }
+
+            else if (trackId === 'night') {
+                // Dark ambient breeze
+                const windSrc = getBufferSource('pink');
+                const windFilter = audioCtx.createBiquadFilter();
+                windFilter.type = 'lowpass';
+                windFilter.frequency.value = 300; // Very muted, dark wind
+                
+                const windGain = audioCtx.createGain();
+                windGain.gain.value = 0.6; // Soft baseline
+                
+                // Gentle swell for the breeze
+                const breezeLfo = audioCtx.createOscillator();
+                breezeLfo.type = 'sine';
+                breezeLfo.frequency.value = 0.05; // 20s rolling cycle
+                activeNodes.push(breezeLfo);
+                
+                const breezeDepth = audioCtx.createGain();
+                breezeDepth.gain.value = 0.4;
+                
+                breezeLfo.connect(breezeDepth).connect(windGain.gain);
+                windSrc.connect(windFilter).connect(windGain).connect(masterGain);
+                
+                breezeLfo.start();
+                windSrc.start();
+
+                // Faint, organic crickets using Amplitude Modulation
+                let cricketTimer;
+                const scheduleCricket = () => {
+                    if (!isPlaying || currentTrackId !== 'night') return;
+                    
+                    const now = audioCtx.currentTime;
+                    
+                    // Base tone
+                    const osc = audioCtx.createOscillator();
+                    osc.type = 'sine';
+                    osc.frequency.value = 4000 + Math.random() * 600; // 4k-4.6k range
+                    
+                    // Trill effect (Amplitude Modulation)
+                    const trillLfo = audioCtx.createOscillator();
+                    trillLfo.type = 'sine';
+                    trillLfo.frequency.value = 40 + Math.random() * 5; // Rapid ~40Hz flutter
+                    
+                    const trillGain = audioCtx.createGain();
+                    
+                    // Shaping the overall cricket chirp (very soft attack and release)
+                    const env = audioCtx.createGain();
+                    env.gain.setValueAtTime(0, now);
+                    env.gain.linearRampToValueAtTime(0.015, now + 1.0); // Extremely soft, distant volume
+                    env.gain.linearRampToValueAtTime(0, now + 2.5); // Slow fade out
+
+                    // Connect modulation
+                    trillLfo.connect(trillGain.gain);
+                    osc.connect(trillGain);
+                    trillGain.connect(env).connect(masterGain);
+                    
+                    osc.start(now);
+                    trillLfo.start(now);
+                    
+                    // Cleanup these specific nodes
+                    osc.stop(now + 3);
+                    trillLfo.stop(now + 3);
+
+                    // Schedule next faint cricket
+                    cricketTimer = setTimeout(scheduleCricket, 3000 + Math.random() * 6000);
+                };
+                
+                scheduleCricket();
+                
+                // Ensure the timer gets cleaned up when stopping
+                activeNodes.push({
+                    stop: () => clearTimeout(cricketTimer),
+                    disconnect: () => {}
+                });
+
+                statusReadout.textContent = `PINK(LPF300) + SINE_AM(40Hz+SOFT_ENV)`;
+            }
+
+            else if (trackId === 'fan') {
+                const src = getBufferSource('brown');
+                
+                // Emphasize motor hum frequencies
+                const filter = audioCtx.createBiquadFilter();
+                filter.type = 'peaking';
+                filter.frequency.value = 250;
+                filter.Q.value = 1.5;
+                filter.gain.value = 5;
+
+                // Flutter gain
+                const flutterGain = audioCtx.createGain();
+                flutterGain.gain.value = 0.7; // Base volume
+                
+                // Fast sine LFO for blade flutter
+                const lfo = audioCtx.createOscillator();
+                lfo.type = 'sine';
+                lfo.frequency.value = 22; // 22Hz blade rotation sound
+                activeNodes.push(lfo);
+
+                const lfoDepth = audioCtx.createGain();
+                lfoDepth.gain.value = 0.3; // Flutter depth
+
+                lfo.connect(lfoDepth);
+                lfoDepth.connect(flutterGain.gain);
+
+                src.connect(filter);
+                filter.connect(flutterGain);
+                flutterGain.connect(masterGain);
+
+                lfo.start();
+                src.start();
+                statusReadout.textContent = `BROWN_BUF -> PK_FLT(250) -> VCA(22Hz)`;
+            }
+
+            else if (trackId === 'cabin') {
+                // Deep engine resonance
+                const droneSrc = getBufferSource('brown');
+                const droneFilter = audioCtx.createBiquadFilter();
+                droneFilter.type = 'lowpass';
+                droneFilter.frequency.value = 150;
+                droneFilter.Q.value = 3.5; // High resonance for that specific humming engine peak
+                const droneGain = audioCtx.createGain();
+                droneGain.gain.value = 1.8;
+                
+                droneSrc.connect(droneFilter).connect(droneGain).connect(masterGain);
+                droneSrc.start();
+
+                // Faint AC / Airflow Hiss
+                const hissSrc = getBufferSource('pink');
+                const hissFilter = audioCtx.createBiquadFilter();
+                hissFilter.type = 'highpass';
+                hissFilter.frequency.value = 4500;
+                const hissGain = audioCtx.createGain();
+                hissGain.gain.value = 0.12; 
+                
+                hissSrc.connect(hissFilter).connect(hissGain).connect(masterGain);
+                hissSrc.start();
+
+                statusReadout.textContent = `BROWN(LPF150/Q3.5) + PINK(HPF4.5k)`;
+            }
+        }
+
+        function playAudio(trackId) {
+            initAudioEngine();
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+
+            currentTrackId = trackId;
+            isPlaying = true;
+
+            buildSoundPatch(trackId);
+
+            // Cross-fade in to prevent speaker pop
+            masterGain.gain.cancelScheduledValues(audioCtx.currentTime);
+            masterGain.gain.setValueAtTime(0, audioCtx.currentTime);
+            masterGain.gain.linearRampToValueAtTime(1, audioCtx.currentTime + 0.5);
+            
+            // Background lock-screen keepalive hack
+            silentBgAudio.play().catch(e => console.log("Bg keepalive blocked", e));
+            
+            // Media Session API for lock screen controls
+            if ('mediaSession' in navigator) {
+                navigator.mediaSession.metadata = new MediaMetadata({
+                    title: trackLabels[trackId],
+                    artist: 'Nocturne Engine',
+                    album: 'Generative Audio',
+                });
+                navigator.mediaSession.setActionHandler('play', () => playAudio(currentTrackId));
+                navigator.mediaSession.setActionHandler('pause', stopAudio);
+            }
+
+            updateUI();
+            if (!animationId) drawVisualizer();
+        }
+
+        function stopAudio() {
+            if (!isPlaying) return;
+            isPlaying = false;
+            currentTrackId = null;
+
+            if (audioCtx) {
+                // Fade out smoothly
+                masterGain.gain.cancelScheduledValues(audioCtx.currentTime);
+                masterGain.gain.setValueAtTime(masterGain.gain.value, audioCtx.currentTime);
+                masterGain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.3);
+                
+                setTimeout(() => {
+                    if (!isPlaying) stopAndClearNodes();
+                }, 350);
+            }
+
+            silentBgAudio.pause();
+            updateUI();
+            
+            // Halt visualization
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+                animationId = null;
+            }
+            renderIdleCanvas();
+        }
+
+        function updateUI() {
+            soundButtons.forEach(btn => {
+                if (btn.dataset.track === currentTrackId) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+
+            if (currentTrackId) {
+                trackReadout.textContent = trackLabels[currentTrackId];
+            } else {
+                trackReadout.textContent = 'Silence';
+                statusReadout.textContent = 'SYSTEM IDLE';
+            }
+        }
+
+        function drawVisualizer() {
+            if (!analyzer || !isPlaying) return;
+            
+            animationId = requestAnimationFrame(drawVisualizer);
+            
+            const bufferLength = analyzer.frequencyBinCount;
+            const dataArray = new Uint8Array(bufferLength);
+            // Get raw waveform data
+            analyzer.getByteTimeDomainData(dataArray);
+
+            const width = canvas.width / (window.devicePixelRatio || 1);
+            const height = canvas.height / (window.devicePixelRatio || 1);
+
+            canvasCtx.clearRect(0, 0, width, height);
+
+            // Draw grid lines
+            canvasCtx.lineWidth = 1;
+            canvasCtx.strokeStyle = 'rgba(17,17,17,0.1)';
+            canvasCtx.beginPath();
+            canvasCtx.moveTo(0, height/2);
+            canvasCtx.lineTo(width, height/2);
+            canvasCtx.stroke();
+
+            // Draw Waveform (Crisp Black Line)
+            canvasCtx.lineWidth = 1.5;
+            canvasCtx.strokeStyle = '#111111';
+            canvasCtx.beginPath();
+
+            const sliceWidth = width * 1.0 / bufferLength;
+            let x = 0;
+
+            for (let i = 0; i < bufferLength; i++) {
+                const v = dataArray[i] / 128.0; // Normalized 0-2
+                // Compress amplitude slightly for visual elegance
+                const adjustedV = 1 + (v - 1) * 0.8; 
+                const y = adjustedV * height / 2;
+
+                if (i === 0) canvasCtx.moveTo(x, y);
+                else canvasCtx.lineTo(x, y);
+
+                x += sliceWidth;
+            }
+            canvasCtx.stroke();
+        }
+
+        // Draws a flatline when audio is stopped
+        function renderIdleCanvas() {
+            const width = canvas.width / (window.devicePixelRatio || 1);
+            const height = canvas.height / (window.devicePixelRatio || 1);
+            
+            canvasCtx.clearRect(0, 0, width, height);
+            canvasCtx.lineWidth = 1;
+            canvasCtx.strokeStyle = 'rgba(17,17,17,0.3)';
+            canvasCtx.beginPath();
+            canvasCtx.moveTo(0, height/2);
+            canvasCtx.lineTo(width, height/2);
+            canvasCtx.stroke();
+        }
+
+        soundButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const track = btn.dataset.track;
+                if (currentTrackId === track) {
+                    stopAudio(); // Toggle off if already playing
+                } else {
+                    playAudio(track);
+                }
+            });
+        });
+
+        stopBtn.addEventListener('click', stopAudio);
+
+        // Initial setup
+        resizeCanvas();
+
+    </script>
+</body>
+</html>
